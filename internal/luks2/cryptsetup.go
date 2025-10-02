@@ -221,6 +221,8 @@ func AddKey(devicePath string, existingKey, key []byte, options *AddKeyOptions) 
 	args := []string{
 		// add a new key
 		"luksAddKey",
+		"-q",
+		"--pbkdf", "pbkdf2"
 		// LUKS2 only
 		"--type", "luks2",
 		// read existing key from named pipe

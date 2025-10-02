@@ -399,7 +399,7 @@ func (e *imageEncrypter) encryptImageOnDevice() error {
 		opts := luks2.AddKeyOptions{
 			KDFOptions: luks2.KDFOptions{
 				MemoryKiB:       32 * 1024,
-				ForceIterations: 4},
+				ForceIterations: 1000},
 			Slot: luks2GrowPartKeyslot}
 		if err := luks2.AddKey(e.rootDevPath(), key, growPartKey[:], &opts); err != nil {
 			return fmt.Errorf("cannot add key to container for cc_growpart: %w", err)
