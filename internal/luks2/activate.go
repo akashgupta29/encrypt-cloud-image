@@ -44,6 +44,7 @@ func Activate(volumeName, sourceDevicePath string, key []byte) error {
 		return fmt.Errorf("systemd-cryptsetup failed with: %v", osutil.OutputErr(output, err))
 	}
 
+	log.Infoln("activate successful", volumeName)
 	return nil
 }
 

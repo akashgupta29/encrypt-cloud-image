@@ -296,6 +296,8 @@ func (e *imageEncrypter) encryptRootPartition() ([]byte, error) {
 	log.Infoln("growing filesystem on", path)
 	if err := growExtFS(path); err != nil {
 		return nil, fmt.Errorf("cannot grow filesystem: %w", err)
+	} else {
+		log.Infoln("successfully grew file system on path:", path)
 	}
 
 	return key[:], nil
@@ -387,6 +389,9 @@ func (e *imageEncrypter) encryptImageOnDevice() error {
 	key, err := e.encryptRootPartition()
 	if err != nil {
 		return fmt.Errorf("cannot encrypt root partition: %w", err)
+	}
+	else {
+		log.Infoln("successfully called encryptRootPartition")
 	}
 
 	if !e.opts.GrowRoot {
