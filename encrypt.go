@@ -277,7 +277,7 @@ func (e *imageEncrypter) encryptRootPartition() ([]byte, error) {
 
 	e.enterScope()
 	defer e.exitScope()
-/*
+
 	volumeName := filepath.Base(devPath)
 	log.Infoln("attaching encrypted container as", volumeName)
 	if err := luks2.Activate(volumeName, devPath, key[:]); err != nil {
@@ -288,6 +288,7 @@ func (e *imageEncrypter) encryptRootPartition() ([]byte, error) {
 		if err := luks2.Deactivate(volumeName); err != nil {
 			return fmt.Errorf("cannot detach container: %w", err)
 		}
+		log.Debugln("detach successful", volumeName)
 		return nil
 	})
 	path := filepath.Join("/dev/mapper", volumeName)
@@ -296,7 +297,7 @@ func (e *imageEncrypter) encryptRootPartition() ([]byte, error) {
 	if err := growExtFS(path); err != nil {
 		return nil, fmt.Errorf("cannot grow filesystem: %w", err)
 	}
-*/
+
 	return key[:], nil
 }
 
