@@ -391,8 +391,7 @@ func (e *imageEncrypter) encryptImageOnDevice() error {
 	key, err := e.encryptRootPartition()
 	if err != nil {
 		return fmt.Errorf("cannot encrypt root partition: %w", err)
-	}
-	else {
+	} else {
 		log.Infoln("successfully called encryptRootPartition")
 	}
 
