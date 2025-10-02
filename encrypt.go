@@ -288,7 +288,7 @@ func (e *imageEncrypter) encryptRootPartition() ([]byte, error) {
 		if err := luks2.Deactivate(volumeName); err != nil {
 			return fmt.Errorf("cannot detach container: %w", err)
 		}
-		log.Debugln("detach successful", volumeName)
+		log.Infoln("detach successful", volumeName)
 		return nil
 	})
 	path := filepath.Join("/dev/mapper", volumeName)
