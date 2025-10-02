@@ -106,6 +106,8 @@ func luks2Encrypt(path string, key []byte) error {
 		path)
 	cmd.Stdin = bytes.NewReader(key)
 
+	// log the command for debugging purposes
+	log.Debugln("running:", cmd.String())
 	return cmd.Run()
 }
 
@@ -275,7 +277,7 @@ func (e *imageEncrypter) encryptRootPartition() ([]byte, error) {
 
 	e.enterScope()
 	defer e.exitScope()
-
+/*
 	volumeName := filepath.Base(devPath)
 	log.Infoln("attaching encrypted container as", volumeName)
 	if err := luks2.Activate(volumeName, devPath, key[:]); err != nil {
@@ -294,7 +296,7 @@ func (e *imageEncrypter) encryptRootPartition() ([]byte, error) {
 	if err := growExtFS(path); err != nil {
 		return nil, fmt.Errorf("cannot grow filesystem: %w", err)
 	}
-
+*/
 	return key[:], nil
 }
 
