@@ -282,7 +282,10 @@ func (e *imageEncrypter) encryptRootPartition() ([]byte, error) {
 	log.Infoln("attaching encrypted container as", volumeName)
 	if err := luks2.Activate(volumeName, devPath, key[:]); err != nil {
 		return nil, fmt.Errorf("cannot activate LUKS container: %w", err)
+	} else {
+		log.Infoln("activated LUKS container:", volumeName, "->", mapperPath)
 	}
+
 	e.addCleanup(func() error {
 		log.Infoln("detaching", volumeName)
 		if err := luks2.Deactivate(volumeName); err != nil {
