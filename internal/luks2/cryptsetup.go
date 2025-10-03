@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/snapcore/snapd/osutil"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -244,6 +245,7 @@ func AddKey(devicePath string, existingKey, key []byte, options *AddKeyOptions) 
 		// in order to be able to do this.
 		"-")
 
+	log.Infoln("Arguments for adding key:", args)
 	writeExistingKeyToFifo := func(cmd *exec.Cmd) error {
 		f, err := os.OpenFile(fifoPath, os.O_WRONLY, 0)
 		if err != nil {

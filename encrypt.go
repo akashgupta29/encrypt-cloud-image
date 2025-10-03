@@ -402,13 +402,16 @@ func (e *imageEncrypter) encryptImageOnDevice() error {
 				ForceIterations: 1000},
 			Slot: luks2GrowPartKeyslot}
 		if err := luks2.AddKey(e.rootDevPath(), key, growPartKey[:], &opts); err != nil {
+			log.Errorln("error adding key to container for cc_growpart:", err)
 			return fmt.Errorf("cannot add key to container for cc_growpart: %w", err)
 		}
 	} else if err := e.growRootPartition(); err != nil {
+		log.Errorln("error growing root partition:", err)
 		return fmt.Errorf("cannot grow root partition: %w", err)
 	}
 
 	if err := e.maybeCopyKernelToESP(); err != nil {
+		log.Errorln("error copying kernel image to ESP:", err)
 		return fmt.Errorf("cannot copy kernel image to ESP: %w", err)
 	}
 
