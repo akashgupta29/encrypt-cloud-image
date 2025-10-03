@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/snapcore/snapd/osutil"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -101,7 +102,7 @@ type KDFOptions struct {
 
 func (options *KDFOptions) appendArguments(args []string) []string {
 	// use argon2i as the KDF
-	args = append(args, "--pbkdf", "argon2i")
+	// args = append(args, "--pbkdf", "argon2i")
 
 	switch {
 	case options.ForceIterations != 0:
@@ -221,6 +222,8 @@ func AddKey(devicePath string, existingKey, key []byte, options *AddKeyOptions) 
 	args := []string{
 		// add a new key
 		"luksAddKey",
+		"-q",
+		"--pbkdf", "pbkdf2",
 		// LUKS2 only
 		"--type", "luks2",
 		// read existing key from named pipe
@@ -242,6 +245,7 @@ func AddKey(devicePath string, existingKey, key []byte, options *AddKeyOptions) 
 		// in order to be able to do this.
 		"-")
 
+	log.Infoln("Arguments for adding key:", args)
 	writeExistingKeyToFifo := func(cmd *exec.Cmd) error {
 		f, err := os.OpenFile(fifoPath, os.O_WRONLY, 0)
 		if err != nil {

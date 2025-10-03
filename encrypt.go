@@ -97,10 +97,6 @@ func luks2Encrypt(path string, key []byte) error {
 		"--key-file", "-",
 		// use AES-256 with XTS block cipher mode (XTS requires 2 keys)
 		"--cipher", "aes-xts-plain64", "--key-size", "512",
-		// use argon2i as the KDF
-		"--pbkdf", "argon2i",
-		// set the minimum KDF cost parameters
-		"--pbkdf-force-iterations", "4", "--pbkdf-memory", "32768",
 		// set the default metadata size to 512KiB
 		"--luks2-metadata-size", fmt.Sprintf("%dk", luks2MetadataKiBSize),
 		// specify the keyslots area size of 16MiB - (2 * 512KiB)
@@ -110,6 +106,8 @@ func luks2Encrypt(path string, key []byte) error {
 		path)
 	cmd.Stdin = bytes.NewReader(key)
 
+	// log the command for debugging purposes
+	log.Debugln("running:", cmd.String())
 	return cmd.Run()
 }
 
@@ -285,11 +283,14 @@ func (e *imageEncrypter) encryptRootPartition() ([]byte, error) {
 	if err := luks2.Activate(volumeName, devPath, key[:]); err != nil {
 		return nil, fmt.Errorf("cannot activate LUKS container: %w", err)
 	}
+	log.Infoln("activated LUKS container:", volumeName)
+
 	e.addCleanup(func() error {
 		log.Infoln("detaching", volumeName)
 		if err := luks2.Deactivate(volumeName); err != nil {
 			return fmt.Errorf("cannot detach container: %w", err)
 		}
+		log.Infoln("detach successful", volumeName)
 		return nil
 	})
 	path := filepath.Join("/dev/mapper", volumeName)
@@ -297,7 +298,9 @@ func (e *imageEncrypter) encryptRootPartition() ([]byte, error) {
 	log.Infoln("growing filesystem on", path)
 	if err := growExtFS(path); err != nil {
 		return nil, fmt.Errorf("cannot grow filesystem: %w", err)
-	}
+	} 
+	
+	log.Infoln("successfully grew file system on path:", path)
 
 	return key[:], nil
 }
@@ -388,25 +391,31 @@ func (e *imageEncrypter) encryptImageOnDevice() error {
 	key, err := e.encryptRootPartition()
 	if err != nil {
 		return fmt.Errorf("cannot encrypt root partition: %w", err)
+	} else {
+		log.Infoln("successfully called encryptRootPartition")
 	}
 
 	if !e.opts.GrowRoot {
 		opts := luks2.AddKeyOptions{
 			KDFOptions: luks2.KDFOptions{
 				MemoryKiB:       32 * 1024,
-				ForceIterations: 4},
+				ForceIterations: 1000},
 			Slot: luks2GrowPartKeyslot}
 		if err := luks2.AddKey(e.rootDevPath(), key, growPartKey[:], &opts); err != nil {
+			log.Errorln("error adding key to container for cc_growpart:", err)
 			return fmt.Errorf("cannot add key to container for cc_growpart: %w", err)
 		}
 	} else if err := e.growRootPartition(); err != nil {
+		log.Errorln("error growing root partition:", err)
 		return fmt.Errorf("cannot grow root partition: %w", err)
 	}
 
 	if err := e.maybeCopyKernelToESP(); err != nil {
+		log.Errorln("error copying kernel image to ESP:", err)
 		return fmt.Errorf("cannot copy kernel image to ESP: %w", err)
 	}
 
+	log.Infoln("encryption complete")
 	return nil
 }
 
