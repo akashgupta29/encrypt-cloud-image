@@ -102,7 +102,7 @@ type KDFOptions struct {
 
 func (options *KDFOptions) appendArguments(args []string) []string {
 	// use argon2i as the KDF
-	args = append(args, "--pbkdf", "argon2i")
+	// args = append(args, "--pbkdf", "argon2i")
 
 	switch {
 	case options.ForceIterations != 0:
