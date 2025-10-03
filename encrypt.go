@@ -415,6 +415,7 @@ func (e *imageEncrypter) encryptImageOnDevice() error {
 		return fmt.Errorf("cannot copy kernel image to ESP: %w", err)
 	}
 
+	log.Infoln("encryption complete")
 	return nil
 }
 
