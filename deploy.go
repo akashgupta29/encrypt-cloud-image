@@ -100,21 +100,43 @@ type imageDeployer struct {
 
 func (d *imageDeployer) maybeAddRecoveryKey(key []byte) error {
 	if d.opts.RecoveryKeyFile == "" {
+		log.Debugln("No recovery key file specified, skipping recovery key addition")
 		return nil
 	}
 
 	log.Infoln("Adding recovery key to image")
+	log.Debugf("Recovery key file: %s", d.opts.RecoveryKeyFile)
+	log.Debugf("Root device path: %s", d.rootDevPath())
+	
 	b, err := ioutil.ReadFile(d.opts.RecoveryKeyFile)
 	if err != nil {
 		return fmt.Errorf("cannot read recovery key from file: %w", err)
 	}
+	log.Debugf("Successfully read recovery key file, length: %d bytes", len(b))
+	
 	if len(b) != 16 {
 		return errors.New("recovery key must be 16 bytes")
 	}
 
-	var recoveryKey secboot.RecoveryKey
-	copy(recoveryKey[:], b)
-	return secboot.AddRecoveryKeyToLUKS2Container(d.rootDevPath(), key, recoveryKey, nil)
+	// Use our internal LUKS2 module with PBKDF2 instead of secboot's function to avoid FIPS issues
+	log.Debugln("Using internal LUKS2.AddKey with PBKDF2 for FIPS compliance")
+	opts := luks2.AddKeyOptions{
+		KDFOptions: luks2.KDFOptions{
+			KDFType:         "pbkdf2",
+			ForceIterations: 1000}, // Use PBKDF2 with 1000 iterations for FIPS compliance
+		Slot: luks2.AnySlot} // Let cryptsetup choose an appropriate slot
+	
+	log.Debugf("KDF Options: Type=%s, Iterations=%d, Slot=%d", opts.KDFOptions.KDFType, opts.KDFOptions.ForceIterations, opts.Slot)
+	log.Debugln("About to call luks2.AddKey...")
+	
+	err = luks2.AddKey(d.rootDevPath(), key, b, &opts)
+	if err != nil {
+		log.Errorf("luks2.AddKey failed: %v", err)
+		return fmt.Errorf("cannot add recovery key using internal LUKS2 module: %w", err)
+	}
+	
+	log.Debugln("Successfully added recovery key using internal LUKS2 module")
+	return nil
 }
 
 func (d *imageDeployer) maybeWriteCustomSRKTemplate(esp string, srkPub *tpm2.Public) error {

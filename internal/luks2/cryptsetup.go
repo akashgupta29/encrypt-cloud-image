@@ -27,6 +27,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/snapcore/snapd/osutil"
@@ -46,6 +47,9 @@ var (
 // from it is supplied to cryptsetup via its stdin. If callback is supplied, it will be invoked
 // after cryptsetup has started.
 func cryptsetupCmd(stdin io.Reader, callback func(cmd *exec.Cmd) error, args ...string) error {
+	// Add detailed logging for debugging
+	fmt.Printf("[DEBUG] cryptsetup command: cryptsetup %s\n", strings.Join(args, " "))
+	
 	cmd := exec.Command("cryptsetup", args...)
 	cmd.Stdin = stdin
 
@@ -53,24 +57,42 @@ func cryptsetupCmd(stdin io.Reader, callback func(cmd *exec.Cmd) error, args ...
 	cmd.Stdout = &b
 	cmd.Stderr = &b
 
+	fmt.Printf("[DEBUG] Starting cryptsetup command...\n")
 	if err := cmd.Start(); err != nil {
+		fmt.Printf("[ERROR] Cannot start cryptsetup: %v\n", err)
 		return fmt.Errorf("cannot start cryptsetup: %w", err)
 	}
 
+	fmt.Printf("[DEBUG] cryptsetup command started, PID: %d\n", cmd.Process.Pid)
+
 	var cbErr error
 	if callback != nil {
+		fmt.Printf("[DEBUG] Executing callback function...\n")
 		cbErr = callback(cmd)
+		if cbErr != nil {
+			fmt.Printf("[ERROR] Callback error: %v\n", cbErr)
+		} else {
+			fmt.Printf("[DEBUG] Callback completed successfully\n")
+		}
 	}
 
+	fmt.Printf("[DEBUG] Waiting for cryptsetup command to complete...\n")
 	err := cmd.Wait()
+	fmt.Printf("[DEBUG] cryptsetup command completed with exit code: %v\n", err)
+
+	if len(b.Bytes()) > 0 {
+		fmt.Printf("[DEBUG] cryptsetup output: %s\n", string(b.Bytes()))
+	}
 
 	switch {
 	case cbErr != nil:
 		return cbErr
 	case err != nil:
+		fmt.Printf("[ERROR] cryptsetup failed: %v\n", osutil.OutputErr(b.Bytes(), err))
 		return fmt.Errorf("cryptsetup failed with: %v", osutil.OutputErr(b.Bytes(), err))
 	}
 
+	fmt.Printf("[DEBUG] cryptsetup command completed successfully\n")
 	return nil
 }
 
@@ -227,15 +249,25 @@ type AddKeyOptions struct {
 // If options is not supplied, the default KDF options are used and the command will
 // automatically choose an appropriate slot.
 func AddKey(devicePath string, existingKey, key []byte, options *AddKeyOptions) error {
+	fmt.Printf("[DEBUG] AddKey called with devicePath=%s, existingKeyLen=%d, newKeyLen=%d\n", 
+		devicePath, len(existingKey), len(key))
+	
 	if options == nil {
 		options = &AddKeyOptions{Slot: AnySlot}
+		fmt.Printf("[DEBUG] Using default AddKeyOptions\n")
+	} else {
+		fmt.Printf("[DEBUG] AddKeyOptions: KDFType=%s, ForceIterations=%d, Slot=%d\n", 
+			options.KDFOptions.KDFType, options.KDFOptions.ForceIterations, options.Slot)
 	}
 
+	fmt.Printf("[DEBUG] Creating FIFO for key passing...\n")
 	fifoPath, cleanupFifo, err := mkFifo()
 	if err != nil {
+		fmt.Printf("[ERROR] Cannot create FIFO: %v\n", err)
 		return fmt.Errorf("cannot create FIFO for passing existing key to cryptsetup: %w", err)
 	}
 	defer cleanupFifo()
+	fmt.Printf("[DEBUG] FIFO created at: %s\n", fifoPath)
 
 	args := []string{
 		// add a new key
@@ -262,10 +294,12 @@ func AddKey(devicePath string, existingKey, key []byte, options *AddKeyOptions) 
 		"-")
 
 	writeExistingKeyToFifo := func(cmd *exec.Cmd) error {
+		fmt.Printf("[DEBUG] Opening FIFO for writing existing key...\n")
 		f, err := os.OpenFile(fifoPath, os.O_WRONLY, 0)
 		if err != nil {
 			// If we fail to open the write end, the read end will be blocked in open(), so
 			// kill the process.
+			fmt.Printf("[ERROR] Cannot open FIFO for writing: %v\n", err)
 			baseErr := fmt.Errorf("cannot open FIFO for passing existing key to cryptsetup: %w", err)
 			if killErr := cmd.Process.Kill(); killErr != nil {
 				return fmt.Errorf("%w (failed to kill process: %s)", err, killErr)
@@ -273,9 +307,11 @@ func AddKey(devicePath string, existingKey, key []byte, options *AddKeyOptions) 
 			return baseErr
 		}
 
+		fmt.Printf("[DEBUG] Writing existing key to FIFO (length: %d bytes)...\n", len(existingKey))
 		if _, err := f.Write(existingKey); err != nil {
 			// The read end is open and blocked inside read(). Closing our write end will result in the
 			// read end returning 0 bytes (EOF) and continuing cleanly.
+			fmt.Printf("[ERROR] Cannot write existing key to FIFO: %v\n", err)
 			baseErr := fmt.Errorf("cannot pass existing key to cryptsetup: %w", err)
 			if err := f.Close(); err != nil {
 				// If we can't close the write end, the read end will remain blocked inside read(),
@@ -287,9 +323,11 @@ func AddKey(devicePath string, existingKey, key []byte, options *AddKeyOptions) 
 			return baseErr
 		}
 
+		fmt.Printf("[DEBUG] Closing FIFO after writing existing key...\n")
 		if err := f.Close(); err != nil {
 			// If we can't close the write end, the read end will remain blocked inside read(),
 			// so kill the process.
+			fmt.Printf("[ERROR] Cannot close FIFO: %v\n", err)
 			baseErr := fmt.Errorf("cannot close write end of FIFO: %w", err)
 			if killErr := cmd.Process.Kill(); killErr != nil {
 				return fmt.Errorf("%w (failed to kill process: %s)", err, killErr)
@@ -297,9 +335,12 @@ func AddKey(devicePath string, existingKey, key []byte, options *AddKeyOptions) 
 			return baseErr
 		}
 
+		fmt.Printf("[DEBUG] Successfully wrote existing key to FIFO and closed it\n")
 		return nil
 	}
 
+	fmt.Printf("[DEBUG] Calling cryptsetupCmd with new key (length: %d bytes)...\n", len(key))
+	fmt.Printf("[DEBUG] Final cryptsetup command will be: cryptsetup %s\n", strings.Join(args, " "))
 	return cryptsetupCmd(bytes.NewReader(key), writeExistingKeyToFifo, args...)
 }
 
