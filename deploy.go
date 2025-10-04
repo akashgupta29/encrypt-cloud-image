@@ -115,7 +115,7 @@ func (d *imageDeployer) maybeAddRecoveryKey(key []byte) error {
 	opts := luks2.AddKeyOptions{
 		KDFOptions: luks2.KDFOptions{
 			KDFType:         "pbkdf2",
-			ForceIterations: 1000},
+			ForceIterations: 100000},
 		Slot: luks2.AnySlot}
 	
 	return luks2.AddKey(d.rootDevPath(), key, b, &opts)
