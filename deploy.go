@@ -34,7 +34,6 @@ import (
 	"github.com/canonical/go-tpm2/mu"
 	"github.com/canonical/tcglog-parser"
 	log "github.com/sirupsen/logrus"
-	"github.com/snapcore/secboot"
 	secboot_efi "github.com/snapcore/secboot/efi"
 	secboot_tpm2 "github.com/snapcore/secboot/tpm2"
 
