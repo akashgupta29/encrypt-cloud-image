@@ -124,6 +124,12 @@ func (e *env) ReadEventLog() (*tcglog.Log, error) {
 	return log, nil
 }
 
+// VarContext returns the variable context for this environment
+// This method is required by the newer HostEnvironmentEFI interface
+func (e *env) VarContext() interface{} {
+	return e
+}
+
 func NewEnvironment(config *Config, logAlgorithms tcglog.AlgorithmIdList) secboot_efi.HostEnvironment {
 	return &env{config, logAlgorithms}
 }
