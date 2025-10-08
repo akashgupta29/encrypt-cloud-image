@@ -21,6 +21,7 @@ package efienv
 
 import (
 	efi "github.com/canonical/go-efilib"
+	"github.com/canonical/go-tpm2"
 	"github.com/canonical/tcglog-parser"
 	secboot_efi "github.com/snapcore/secboot/efi"
 )
@@ -45,7 +46,7 @@ func (e *env) makeEFIVariableDriverConfigEvent(pcr int, name string, guid efi.GU
 	}
 
 	return &tcglog.Event{
-		PCRIndex:  pcr,
+		PCRIndex:  tpm2.Handle(pcr),
 		EventType: tcglog.EventTypeEFIVariableDriverConfig,
 		Digests:   digests,
 		Data: &tcglog.EFIVariableData{
@@ -61,7 +62,7 @@ func (e *env) makeSeparatorEvent(pcr int) *tcglog.Event {
 	}
 
 	return &tcglog.Event{
-		PCRIndex:  pcr,
+		PCRIndex:  tpm2.Handle(pcr),
 		EventType: tcglog.EventTypeSeparator,
 		Digests:   digests,
 		Data:      new(tcglog.SeparatorEventData)}
@@ -74,7 +75,7 @@ func (e *env) makeEFIActionEvent(pcr int, data tcglog.EventData) *tcglog.Event {
 	}
 
 	return &tcglog.Event{
-		PCRIndex:  pcr,
+		PCRIndex:  tpm2.Handle(pcr),
 		EventType: tcglog.EventTypeEFIAction,
 		Digests:   digests,
 		Data:      data}
@@ -121,12 +122,6 @@ func (e *env) ReadEventLog() (*tcglog.Log, error) {
 	log.Events = append(log.Events, e.makeSeparatorEvent(4))
 
 	return log, nil
-}
-
-// VarContext returns the variable context for this environment
-// This method is required by the newer HostEnvironmentEFI interface
-func (e *env) VarContext() efi.VariableContext {
-	return e
 }
 
 func NewEnvironment(config *Config, logAlgorithms tcglog.AlgorithmIdList) secboot_efi.HostEnvironment {
