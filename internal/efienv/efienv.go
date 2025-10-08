@@ -20,6 +20,7 @@
 package efienv
 
 import (
+	"context"
 	efi "github.com/canonical/go-efilib"
 	"github.com/canonical/go-tpm2"
 	"github.com/canonical/tcglog-parser"
@@ -126,8 +127,8 @@ func (e *env) ReadEventLog() (*tcglog.Log, error) {
 
 // VarContext returns the variable context for this environment
 // This method is required by the newer HostEnvironmentEFI interface
-func (e *env) VarContext() interface{} {
-	return e
+func (e *env) VarContext(parent context.Context) context.Context {
+	return parent
 }
 
 func NewEnvironment(config *Config, logAlgorithms tcglog.AlgorithmIdList) secboot_efi.HostEnvironment {
