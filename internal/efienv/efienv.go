@@ -38,7 +38,7 @@ type env struct {
 	logAlgorithms tcglog.AlgorithmIdList
 }
 
-func (e *env) makeEFIVariableDriverConfigEvent(pcr tcglog.PCRIndex, name string, guid efi.GUID, data []byte) *tcglog.Event {
+func (e *env) makeEFIVariableDriverConfigEvent(pcr int, name string, guid efi.GUID, data []byte) *tcglog.Event {
 	digests := make(tcglog.DigestMap)
 	for _, alg := range e.logAlgorithms {
 		digests[alg] = tcglog.ComputeEFIVariableDataDigest(alg.GetHash(), name, guid, data)
@@ -54,7 +54,7 @@ func (e *env) makeEFIVariableDriverConfigEvent(pcr tcglog.PCRIndex, name string,
 			VariableData: data}}
 }
 
-func (e *env) makeSeparatorEvent(pcr tcglog.PCRIndex) *tcglog.Event {
+func (e *env) makeSeparatorEvent(pcr int) *tcglog.Event {
 	digests := make(tcglog.DigestMap)
 	for _, alg := range e.logAlgorithms {
 		digests[alg] = tcglog.ComputeSeparatorEventDigest(alg.GetHash(), tcglog.SeparatorEventNormalValue)
@@ -67,7 +67,7 @@ func (e *env) makeSeparatorEvent(pcr tcglog.PCRIndex) *tcglog.Event {
 		Data:      new(tcglog.SeparatorEventData)}
 }
 
-func (e *env) makeEFIActionEvent(pcr tcglog.PCRIndex, data tcglog.EventData) *tcglog.Event {
+func (e *env) makeEFIActionEvent(pcr int, data tcglog.EventData) *tcglog.Event {
 	digests := make(tcglog.DigestMap)
 	for _, alg := range e.logAlgorithms {
 		digests[alg] = tcglog.ComputeStringEventDigest(alg.GetHash(), data.String())
@@ -121,6 +121,12 @@ func (e *env) ReadEventLog() (*tcglog.Log, error) {
 	log.Events = append(log.Events, e.makeSeparatorEvent(4))
 
 	return log, nil
+}
+
+// VarContext returns the variable context for this environment
+// This method is required by the newer HostEnvironmentEFI interface
+func (e *env) VarContext() efi.VariableContext {
+	return e
 }
 
 func NewEnvironment(config *Config, logAlgorithms tcglog.AlgorithmIdList) secboot_efi.HostEnvironment {

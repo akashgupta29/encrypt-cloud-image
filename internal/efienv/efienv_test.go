@@ -65,7 +65,7 @@ func (checker *isEFIVariableDriverConfigEventChecker) Check(params []interface{}
 	if !ok {
 		return false, names[1] + "is not a PCR index"
 	}
-	if tcglog.PCRIndex(pcr) != e.PCRIndex {
+	if pcr != e.PCRIndex {
 		return false, invalidPCRIndexErrStr
 	}
 
@@ -125,7 +125,7 @@ func (checker *isSeparatorEventChecker) Check(params []interface{}, names []stri
 	if !ok {
 		return false, names[1] + "is not a PCR index"
 	}
-	if tcglog.PCRIndex(pcr) != e.PCRIndex {
+	if pcr != e.PCRIndex {
 		return false, invalidPCRIndexErrStr
 	}
 
@@ -175,7 +175,7 @@ func (checker *isEFIActionEventChecker) Check(params []interface{}, names []stri
 	if !ok {
 		return false, names[1] + "is not a PCR index"
 	}
-	if tcglog.PCRIndex(pcr) != e.PCRIndex {
+	if pcr != e.PCRIndex {
 		return false, invalidPCRIndexErrStr
 	}
 
